@@ -135,14 +135,6 @@ show_slides() {
 ######################################################################
 ## slide sections
 
-sections() {
-  in_the_beginning
-  what_is_a_shell
-  bentleys_challenge
-  more_on_the_philosophy
-  bash_and_you_at_unbounce
-}
-
 in_the_beginning() {
   local offset
   offset="${offset-1}"
@@ -440,6 +432,41 @@ bash_and_you_at_unbounce() {
       ;;
   esac
 }
+
+some_resources() {
+  clear
+  echo
+  echo
+  echo "https://en.wikipedia.org/wiki/Unix_philosophy/"
+  echo
+  echo "Bash kung-fu for data science:"
+  echo "  https://www.datascienceatthecommandline.com/"
+
+  echo
+  echo "Extending the Unix philosophy to distributed stream processing:"
+  echo "  https://www.oreilly.com/learning/making-sense-of-stream-processing/page/4/the-unix-philosophy-of-distributed-data"
+
+  echo
+  echo "How Bash parses and interprets lines of input:"
+  echo "  http://mywiki.wooledge.org/BashParser"
+
+  echo
+  echo "Lots of bash lore:"
+  echo "  http://wiki.bash-hackers.org/"
+
+  wait_for_input
+}
+
+sections() {
+  in_the_beginning
+  what_is_a_shell
+  bentleys_challenge
+  more_on_the_philosophy
+  bash_and_you_at_unbounce
+  some_resources
+}
+
+######################################################################
 
 main() {
   [[ -z "$NO_SETUP_TERM" ]] && setup_term
