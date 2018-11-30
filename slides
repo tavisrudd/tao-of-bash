@@ -41,16 +41,15 @@ wait_for_input() {
           NO_SETUP_TERM=1 exec "${BASH_SOURCE[0]}" "$goto_slide"
         fi
         ;;
-      s)
-        select GOTO in $(get_sections_list); do
-          goto_slide=$(( GOTO - 1 ))
-          echo selected "$GOTO" "$goto_slide"
-          read -r
-          break
-        done
-
-        : # TODO implement backwards slide
-        ;;
+      # TODO finish select slide / offset mechanism
+      # s)
+      #   select GOTO in $(get_sections_list); do
+      #     goto_slide=$(( GOTO - 1 ))
+      #     echo selected "$GOTO" "$goto_slide"
+      #     read -r
+      #     break
+      #   done
+      #   ;;
       *)
         break
     esac
