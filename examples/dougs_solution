@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+main(){
+  local nlines="$1"
+  tr -cs A-Za-z '\n' | \
+    tr A-Z a-z | \
+    sort | \
+    uniq -c | \
+    sort -rn | \
+    sed "${nlines}q"
+}
+
+main "$@"

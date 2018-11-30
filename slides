@@ -1,0 +1,450 @@
+#!/usr/bin/env bash
+
+# shellcheck source=boilerplate.sh
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && source "$(dirname "${BASH_SOURCE[0]}")/boilerplate.sh"
+
+######################################################################
+## helpers
+
+RED="\\e[31m"
+YELLOW="\\e[33m"
+RESET="\\e[0m"
+
+get_sections_list() {
+  type "sections" | gawk 'match($0, /^  *([a-z_]+)/, ary) {print ary[1]}'
+}
+
+declare CURRENT_SLIDE
+
+[[ -n "$DEBUG" ]] && clear() { :; }
+
+wait_for_input() {
+  local img # passed by env var
+  local goto_slide
+  while read -N1 -r key; do
+    tput dl 1
+    case "$key" in
+      o)                        # display the current image in Preview
+        [[ -n "$img" ]] && open "$img"
+        ;;
+      x)
+        clear
+        echo "> opening subshell"
+        SKIP_FULL_SETUP=1 bash --login || true
+        clear
+        break
+        ;;
+      b)
+        if (( CURRENT_SLIDE > 0 )); then
+          goto_slide=$(( CURRENT_SLIDE - 1))
+          clear
+          NO_SETUP_TERM=1 exec "${BASH_SOURCE[0]}" "$goto_slide"
+        fi
+        ;;
+      s)
+        select GOTO in $(get_sections_list); do
+          goto_slide=$(( GOTO - 1 ))
+          echo selected "$GOTO" "$goto_slide"
+          read -r
+          break
+        done
+
+        : # TODO implement backwards slide
+        ;;
+      *)
+        break
+    esac
+  done
+}
+
+show_img() {
+  local img
+  img="$1"
+  echo
+  echo
+  echo
+  ~/.iterm2/imgcat "$img"
+  img="$img" wait_for_input
+}
+
+setup_term() {
+  tput smcup
+  tput civis
+  clear
+}
+
+reset_term() {
+  # shellcheck disable=SC2181
+  if (($? == 0)) ; then
+    tput cnorm
+    tput rmcup
+    clear
+  fi
+}
+[[ -n "$DEBUG" ]] && trap 'reset_term' EXIT
+
+show_example() {
+  type_command "cat examples/$1"
+  echo
+  highlight -O xterm256 --style=moria "examples/$1"
+  wait_for_input
+}
+
+type_command() {
+  local command
+  command="$*"
+  echo -ne "${RED} $ ${RESET}"
+  echo -ne "${YELLOW}"
+  local i
+  for (( i=0; i<${#command}; i++ )); do
+    echo -n "${command:$i:1}"
+    sleep 0.02
+  done
+  echo -ne "${RESET}"
+  echo
+  sleep 0.1
+}
+
+run_example() {
+  type_command "$*"
+  "$@"
+}
+
+flashing_prompt() {
+  echo -ne  "\\e[31;5m $ ${RESET}"
+}
+
+show_slides() {
+  local _sections
+  local sect_count
+  local start
+  readarray _sections <<< "$(get_sections_list)"
+  sect_count="${#_sections[@]}"
+
+  start="${1-0}"
+  if (( start >= sect_count )); then
+    start=$(( sect_count - 1))
+  fi
+
+  local i
+  for (( i=start; i < sect_count; i++ )); do
+    CURRENT_SLIDE="$i"
+    ${_sections[$i]}
+  done
+}
+
+######################################################################
+## slide sections
+
+sections() {
+  in_the_beginning
+  what_is_a_shell
+  bentleys_challenge
+  more_on_the_philosophy
+  bash_and_you_at_unbounce
+}
+
+in_the_beginning() {
+  local offset
+  offset="${offset-1}"
+  case "$offset" in
+    1)
+      clear
+      echo
+      echo
+      echo "  In the beginning was the command line"
+      echo
+      flashing_prompt
+      wait_for_input
+      # The ;& terminator causes case to also execute the next block without testing its pattern.
+      # http://wiki.bash-hackers.org/syntax/ccmd/case
+      ;&
+    2)
+      clear
+      echo
+      echo
+      echo "  Before the beginning was the Bell Labs"
+      echo -e "  ${YELLOW}Multics operating system${RESET}"
+      show_img imgs/250px-Multics_logo.gif
+      echo
+      echo -e "${RED}Big monolithic system!${RESET}"
+      show_img imgs/multics_racks.jpg
+      ;&
+    3)
+      clear
+      echo
+      echo
+      echo -e "  ${YELLOW}Unix${RESET}, also from Bell Labs, was a reaction"
+      echo
+      echo "  'Eunuch' -- castrated Multics"
+      show_img imgs/Dennis-Ritchie-Ken-Thompson-and-PDP11-UNIX-1972.jpg
+      ;&
+    4|*)
+      clear
+      echo
+      echo
+      echo -e "  Have you heard of ${YELLOW}'The Unix Philosophy'${RESET}?"
+      flashing_prompt
+      wait_for_input
+      echo
+      echo
+      echo -e "  This talk is about that philosophy and how it shines in good ${YELLOW}Shell${RESET} code."
+      wait_for_input
+      echo
+      echo "  Not a lesson about syntax or details."
+      wait_for_input
+      ;;
+  esac
+
+}
+
+what_is_a_shell() {
+  local offset
+  offset="${offset-1}"
+  case "$offset" in
+    1)
+      clear
+      echo
+      echo
+      echo "  What is a shell language?"
+      flashing_prompt
+      wait_for_input
+      echo "  'Shell' around the 'kernel' as in the shell of a nut:"
+      show_img imgs/in-a-nutshell.jpg
+      ;&
+    2)
+      clear
+      echo
+      echo
+      echo -e "  They are ${RED}not${RESET} languages for building autonomous ${RED}robots${RESET} or other complicated systems"
+      echo
+      show_img imgs/robot.jpg
+      ;&
+    3)
+      #clear
+      echo
+      echo
+      echo -e "  but languages for humans to interface with the machine: ${RED}exoskeletons${RESET} around humans."
+      echo "  They are designed for interaction and their syntax and semantics reflect this."
+      echo
+      show_img imgs/mech_suit.jpg
+      ;&
+    4|*)
+      clear
+      echo
+      echo
+      echo -e "  Bash (Bourne Again Shell) is a modern descendant of the original Unix shell languages."
+      wait_for_input
+      ;;
+  esac
+}
+
+bentleys_challenge() {
+  local offset
+  offset="${offset-1}"
+  case "$offset" in
+    1)
+
+      clear
+      echo
+      echo
+      echo "  A story, with code, to illustrate the Philosophy:"
+      wait_for_input
+      echo -e "
+
+  A decade after Unix was created, computer scientist ${YELLOW}Jon Bentley${RESET}
+  asked to ${YELLOW}Donald Knuth${RESET} to demonstrate ${YELLOW}literate programming${RESET},
+  in his ACM column 'Programming Pearls'."
+  wait_for_input
+  show_img imgs/programming_pearls.jpg
+
+      ;&
+    2)
+      clear
+      echo
+      echo
+      echo "  Knuth, the legend:"
+      show_img imgs/young-donald-knuth-ibm-650-1958.jpg
+      show_img imgs/art_of_computer_programming.jpg
+      #show_img imgs/xkcd_donald_knuth.png
+
+      ;&
+    3)
+      clear
+      echo
+      echo
+      echo -e "
+  Bentley's challenge to Knuth:
+
+    Read a file of text, determine the ${YELLOW}n most frequently used words${RESET},
+    and print out a ${YELLOW}sorted${RESET} list of those words
+    along with their ${YELLOW}frequencies${RESET}.";
+      echo
+      echo "  How would you solve this?"
+      flashing_prompt
+      wait_for_input
+      echo
+      echo -e "
+  Knuth's solution was ${RED}10+ pages of Pascal${RESET},
+  beautifully written in a literate style, with a custom-built data structure."
+      wait_for_input
+      ;&
+    4)
+      clear
+      show_img imgs/literate_programming_cover.jpg
+      echo -e "
+  Bentley also asked ${YELLOW}Doug McIlroy${RESET}, creator of Unix pipes,
+  to write a ${YELLOW}literary critique${RESET} of Knuth's solution.";
+      echo
+      show_img imgs/doug_mcilroy.png
+
+      ;&
+    5)
+      clear
+      echo
+      echo
+      echo -e "  Doug's epic critique to Knuth's ${RED}10+ pages${RESET}:"
+      dougs_solution
+      wait_for_input
+
+      type_command "examples/dougs_solution 5 < ./slides"
+      examples/dougs_solution 5 < test.txt
+      wait_for_input
+
+      ;&
+    6)
+      clear
+      echo
+      echo
+      echo "  An exemplar of the Unix Philosophy"
+      dougs_solution
+      show_img imgs/doug_mcilroy_quote.jpg
+      ;&
+
+    7|*)
+      clear
+      echo
+      echo " How it works:"
+      explain_dougs_solution
+      wait_for_input
+      ;;
+  esac
+}
+
+dougs_solution() {
+  echo
+  echo
+  {
+    cat <<'EOF'
+  tr -cs A-Za-z '\n' | \
+    tr A-Z a-z | \
+    sort | \
+    uniq -c | \
+    sort -rn | \
+    sed ${1}q
+EOF
+    } | highlight --style=moria --syntax=bash -Oxterm256
+}
+
+explain_dougs_solution() {
+  {
+    cat <<'EOF'
+
+  # Make one-word lines by transliterating the
+  # complement (-c) of the alphabet into newlines (note the quoted newline),
+  # and squeezing out (-s) multiple newlines.
+    tr -cs A-Za-z '\n' | \
+  # Transliterate upper case to lower case.
+      tr A-Z a-z | \
+  # Sort to bring identical words together.
+      sort | \
+  # Replace each run of duplicate words with a single representative and include a count (-c).
+      uniq -c | \
+  # Sort in reverse (-r) numeric (-n) order.
+      sort -rn | \
+  # Pass through a stream editor; quit (q) after printing the number of lines
+  # designated by the script’s first parameter (${1}).
+      sed ${1}q
+EOF
+  } | highlight --style=moria --syntax=bash -Oxterm256
+
+}
+
+more_on_the_philosophy() {
+  echo more_on_the_philosophy
+  local offset
+  offset="${offset-1}"
+  case "$offset" in
+    1)
+      clear
+      echo
+      echo
+      echo "  Let's talk about the Unix Philosophy"
+      echo "  and how it could apply to everything we build."
+      show_img imgs/doug_mcilroy_quote.jpg
+      local the_17_unix_rules
+      the_17_unix_rules="https://en.wikipedia.org/wiki/Unix_philosophy#Eric_Raymond%E2%80%99s_17_Unix_Rules"
+      echo "$the_17_unix_rules"
+      wait_for_input
+      open "$the_17_unix_rules"
+      ;&
+    2|*)
+      echo
+      echo
+      echo "  Extending and modernizing the philosophy:"
+      local unix_philosophy_of_distributed_data
+      unix_philosophy_of_distributed_data="https://www.oreilly.com/learning/making-sense-of-stream-processing/page/4/the-unix-philosophy-of-distributed-data"
+      echo "$unix_philosophy_of_distributed_data"
+      wait_for_input
+      open "$unix_philosophy_of_distributed_data"
+      ;;
+  esac
+}
+
+bash_and_you_at_unbounce() {
+  local offset
+  offset="${offset-1}"
+  case "$offset" in
+    1)
+      clear
+      echo
+      echo
+      echo "  Bash at Unbounce?"
+      wait_for_input
+
+      echo
+      echo
+      echo "  Use Bash as a glue language."
+      echo
+      echo "  Use Bash for prototyping."
+      echo
+      echo "  Use Bash as a way to learn Unix deeper."
+      wait_for_input
+      echo
+      echo "  But please don't get carried away!"
+      wait_for_input
+      show_img imgs/haskell_bash_complexity.jpg
+      ;&
+
+    2|*)
+      clear
+      echo
+      echo
+      echo "  If your scripts grow complex or large, "
+      echo "  rewrite them in a language better suited for the task."
+      echo
+      echo "  E.g. the .ts replacement scripts here: https://github.com/unbounce/lp-builder/tree/master/bin"
+      wait_for_input
+      open https://github.com/unbounce/lp-builder/tree/master/bin
+
+      wait_for_input
+      ;;
+  esac
+}
+
+main() {
+  [[ -z "$NO_SETUP_TERM" ]] && setup_term
+  show_slides "$@"
+}
+
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"
